@@ -4,8 +4,8 @@ import com.users.domain.model.UserModel;
 
 public interface IUserPersistencePort {
 
-    UserModel deleteUser(Long userId);
+    void deleteUser(String userId);
 
-    UserModel updateUser(Long id, UserModel user);
+    void updateUser(String id, UserModel user);
 
 }

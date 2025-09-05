@@ -1,11 +1,14 @@
 package com.users.application.handler.impl;
 
 import com.users.application.dto.request.UserRequestDto;
+import com.users.application.dto.response.SuccessMessageResponseDto;
 import com.users.application.dto.response.UserResponseDto;
 import com.users.application.handler.IUserHandler;
 import com.users.application.mapper.UserMapper;
 import com.users.domain.api.IUserServicePort;
 import com.users.domain.model.UserModel;
+
+import java.time.LocalDateTime;
 
 public class UserHandler implements IUserHandler {
 
@@ -18,14 +21,16 @@ public class UserHandler implements IUserHandler {
     }
 
     @Override
-    public UserResponseDto deleteUser(Long id) {
-        return userMapper.toResponseDto(userServicePort.deleteUser(id));
+    public SuccessMessageResponseDto deleteUser(String id) {
+        userServicePort.deleteUser(id);
+        return new SuccessMessageResponseDto("Usuario con Id: " +  id + " Eliminado", LocalDateTime.now());
     }
 
     @Override
-    public UserResponseDto updateUser(Long id, UserRequestDto userRequestDto) {
+    public SuccessMessageResponseDto updateUser(String id, UserRequestDto userRequestDto) {
         UserModel userModel = userMapper.toModel(userRequestDto);
-        return userMapper.toResponseDto(userServicePort.updateUser(id, userModel));
+        userServicePort.updateUser(id, userModel);
+        return new SuccessMessageResponseDto("Usuario con el Id: " + id + " actualizado", LocalDateTime.now());
     }
 
 

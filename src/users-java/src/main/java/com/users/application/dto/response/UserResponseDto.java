@@ -1,4 +1,4 @@
 package com.users.application.dto.response;
 
-public record UserResponseDto(Long id, String name, String email) {
+public record UserResponseDto(String id, String name, String email) {
 }

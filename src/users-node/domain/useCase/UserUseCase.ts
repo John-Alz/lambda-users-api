@@ -4,11 +4,11 @@ import { IUserPersistencePort } from "../spi/IUserPersistencePort";
 export class UserUseCase implements IUserServicePort {
   constructor(private userPersistencePort: IUserPersistencePort) {}
 
-  getUsers(): User[] {
-    return this.userPersistencePort.getUsers();
+  async getUsers(): Promise<User[]> {
+    return await this.userPersistencePort.getUsers();
   }
 
-  saveUser(user: User): User {
-    return this.userPersistencePort.saveUser(user);
+  async saveUser(user: User): Promise<User> {
+    return await this.userPersistencePort.saveUser(user);
   }
 }
