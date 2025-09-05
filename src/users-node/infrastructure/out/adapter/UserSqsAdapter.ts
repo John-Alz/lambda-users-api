@@ -3,8 +3,7 @@ import { IUserSqsPort } from "../../../domain/spi/IUserSqsPort";
 
 export class UserSqsAdapter implements IUserSqsPort {
   private sqsClient: SQSClient;
-  private queueUrl: string =
-    "https://sqs.us-east-1.amazonaws.com/178220864854/user-events-queue";
+  private queueUrl = "https://sqs.us-east-1.amazonaws.com/178220864854/user-events-queue"
 
   constructor() {
     this.sqsClient = new SQSClient({ region: "us-east-1" });

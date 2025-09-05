@@ -7,10 +7,6 @@ provider:
   name: aws
   region: us-east-1
 
-  # SECCIÓN 2: VARIABLES DE ENTORNO (PARA NO 'HARDCODEAR' VALORES)
-  environment:
-    SQS_QUEUE_URL: arn:aws:sqs:us-east-1:178220864854:user-events-queue
-    SNS_TOPIC_ARN: arn:aws:sns:us-east-1:178220864854:new-user-notifications
 
   # SECCIÓN 3: PERMISOS DE IAM (PARA QUE LAS LAMBDAS PUEDAN ACCEDER A OTROS SERVICIOS)
   iam:

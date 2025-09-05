@@ -3,8 +3,7 @@ import { IUserSnsPort } from "../../../domain/spi/IUserSnsPort";
 
 export class UserSnsAdapter implements IUserSnsPort {
   private snsClient: SNSClient;
-  private SNS_TOPIC_ARN =
-    "arn:aws:sns:us-east-1:178220864854:new-user-notifications";
+  private SNS_TOPIC_ARN = "arn:aws:sns:us-east-1:178220864854:new-user-notifications";
 
   constructor() {
     this.snsClient = new SNSClient({ region: "us-east-1" });
