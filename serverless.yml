@@ -1,15 +1,32 @@
 org: jjorg
 service: lambda-users-api
 
+
+
 provider:
   name: aws
   region: us-east-1
+
+  # SECCIÓN 2: VARIABLES DE ENTORNO (PARA NO 'HARDCODEAR' VALORES)
+  environment:
+    SQS_QUEUE_URL: arn:aws:sqs:us-east-1:178220864854:user-events-queue
+    SNS_TOPIC_ARN: arn:aws:sns:us-east-1:178220864854:new-user-notifications
+
+  # SECCIÓN 3: PERMISOS DE IAM (PARA QUE LAS LAMBDAS PUEDAN ACCEDER A OTROS SERVICIOS)
+  iam:
+    role:
+      statements:
+        - Effect: "Allow"
+          Action: "sqs:SendMessage"
+          Resource: "arn:aws:sqs:us-east-1:178220864854:user-events-queue"
+        - Effect: "Allow"
+          Action: "sns:Publish"
+          Resource: "arn:aws:sns:us-east-1:178220864854:new-user-notifications"
 
 functions:
   # ========================
   # NodeJS Lambdas
   # ========================
-
   getUsers:
     handler: src/users-node/infrastructure/in/rest/UserHandler.getUsers
     runtime: nodejs20.x
@@ -25,6 +42,16 @@ functions:
       - httpApi:
           path: /users
           method: post
+
+  # SECCIÓN 5: INDENTACIÓN CORRECTA
+  sendEmail:
+    handler: src/users-node/infrastructure/in/rest/SnsHandler.getUserBySqsEvent
+    runtime: nodejs20.x
+    events:
+      - sqs:
+          arn: arn:aws:sqs:us-east-1:178220864854:user-events-queue
+          enabled: true
+
   # ========================
   # Java Lambdas
   # ========================
