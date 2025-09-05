@@ -8,12 +8,13 @@ export class UserHandler implements IUserHandler {
 
     constructor(private userServicePort: IUserServicePort){}
     
-    getUsers(): UserResponseDto[] {
-        return this.userServicePort.getUsers().map(UserMapper.toResponse);
+    async getUsers(): Promise<UserResponseDto[]> {
+        const users = await this.userServicePort.getUsers();
+        return users.map(UserMapper.toResponse);
     }
 
-    saveUser(userDto: UserRequestDto): UserResponseDto {
-        const user = this.userServicePort.saveUser(UserMapper.toDomain(userDto))
+    async saveUser(userDto: UserRequestDto): Promise<UserResponseDto> {
+        const user = await this.userServicePort.saveUser(UserMapper.toDomain(userDto))
         return UserMapper.toResponse(user);
     }
     

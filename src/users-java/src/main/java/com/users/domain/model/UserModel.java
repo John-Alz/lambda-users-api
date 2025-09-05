@@ -3,7 +3,7 @@ package com.users.domain.model;
 
 public class UserModel {
 
-    private Long id;
+    private String id;
     private String name;
     private String email;
 
@@ -14,7 +14,7 @@ public class UserModel {
         this.email = email;
     }
 
-    public UserModel(Long id, String name, String email) {
+    public UserModel(String id, String name, String email) {
         this.id = id;
         this.name = name;
         this.email = email;
@@ -29,11 +29,11 @@ public class UserModel {
                 '}';
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
