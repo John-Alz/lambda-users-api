@@ -37,6 +37,11 @@ dependencies {
     // JUnit 5 para tests
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    implementation platform('software.amazon.awssdk:bom:2.26.11')
+    implementation 'software.amazon.awssdk:dynamodb'
+
+
 }
 
 test {

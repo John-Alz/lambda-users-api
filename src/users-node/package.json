@@ -5,5 +5,10 @@
     "serverless-esbuild": "^1.55.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.882.0",
+    "@aws-sdk/lib-dynamodb": "^3.882.0",
+    "uuid": "^11.1.0"
   }
 }

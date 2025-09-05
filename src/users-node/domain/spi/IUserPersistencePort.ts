@@ -1,4 +1,4 @@
 export interface IUserPersistencePort {
-    getUsers(): User[];
-    saveUser(user: User): User;
+    getUsers(): Promise<User[]>;
+    saveUser(user: User): Promise<User>;
 }

@@ -2,17 +2,19 @@ package com.users.infrastructure.out.dynamo.adapter;
 
 import com.users.domain.model.UserModel;
 import com.users.domain.spi.IUserPersistencePort;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
+
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class UserPersistenceAdapter implements IUserPersistencePort {
 
-    List<UserModel> users = new ArrayList<>();
-    {
-        users.add(new UserModel(1L, "Juan Pérez", "juan@example.com"));
-        users.add(new UserModel(2L, "María Gómez", "maria@example.com"));
+    private final DynamoDbClient dynamoDbClient;
+    private final String tableName = "users";
+
+    public UserPersistenceAdapter(DynamoDbClient dynamoDbClient) {
+        this.dynamoDbClient = dynamoDbClient;
     }
 
     @Override
