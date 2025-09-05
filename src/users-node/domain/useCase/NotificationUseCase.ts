@@ -12,8 +12,8 @@ export class NotificationUseCase implements IUserSnsServicePort {
             email: user.email
         });
         
-        const subject = `¡Bienvenido, ${user.name}!`;
-        const message = `Hola ${user.name},\n\nTu registro ha sido completado exitosamente.`;
+        const subject = `¡Un nuevo usuario se ha unido al sistema, ${user.name}!`;
+        const message = `Hola administrador,\n\nEl usuario ${user.name} ha completado su registro exitosamente y ahora hace parte del sistema.`;
 
         const notification: NotificationData = {subject, message};
 
