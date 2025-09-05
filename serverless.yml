@@ -1,0 +1,52 @@
+org: jjorg
+service: lambda-users-api
+
+provider:
+  name: aws
+  region: us-east-1
+
+functions:
+  # ========================
+  # NodeJS Lambdas
+  # ========================
+
+  getUsers:
+    handler: src/users-node/infrastructure/in/rest/UserHandler.getUsers
+    runtime: nodejs20.x
+    events:
+      - httpApi:
+          path: /users
+          method: get
+
+  saveUser:
+    handler: src/users-node/infrastructure/in/rest/UserHandler.saveUser
+    runtime: nodejs20.x
+    events:
+      - httpApi:
+          path: /users
+          method: post
+  # ========================
+  # Java Lambdas
+  # ========================
+
+  deleteUser:
+    handler: com.users.infrastructure.in.rest.UserRest$DeleteUserHandler::handleRequest
+    runtime: java17
+    package:
+      artifact: src/users-java/build/libs/users-java-handlers-1.0-SNAPSHOT.jar
+    events:
+      - httpApi:
+          path: /users/{id}
+          method: delete
+
+  putUser:
+    handler: com.users.infrastructure.in.rest.UserRest$UpdateUserHandler::handleRequest
+    runtime: java17
+    package:
+      artifact: src/users-java/build/libs/users-java-handlers-1.0-SNAPSHOT.jar
+    events:
+      - httpApi:
+          path: /users/{id}
+          method: put
+
+          
