@@ -6,6 +6,6 @@ export class UserMapper {
   }
 
   static toDomain(dto: { name: string; email: string }): User {
-    return { id: 0, name: dto.name, email: dto.email };
+    return { id: '0', name: dto.name, email: dto.email };
   }
 }

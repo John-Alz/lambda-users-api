@@ -1,4 +1,12 @@
 {
+  "name": "users-node",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc && cp package*.json dist/ && cd dist && npm install --production"
+  },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.152",
     "@types/node": "^24.3.1",

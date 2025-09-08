@@ -1,0 +1,288 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Pila de CloudFormation para el servicio de usuarios CRUD y notificaciones.'
+
+Resources:
+  # --- Cola SQS para eventos de nuevos usuarios ---
+  UserEventsQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: user-events-queue
+
+  # --- Tema SNS para notificaciones ---
+  NewUserTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: new-user-notifications
+
+  # --- Tabla DynamoDB para los usuarios ---
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: users
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  # --- Rol de IAM para las Lambdas del CRUD ---
+  CrudLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: CrudLambdaRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: CrudLambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Scan
+                Resource: !GetAtt UsersTable.Arn
+              - Effect: Allow
+                Action: sqs:SendMessage
+                Resource: !GetAtt UserEventsQueue.Arn
+
+  # --- Rol de IAM para la Lambda de Notificaciones ---
+  NotificationLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: NotificationLambdaRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: NotificationLambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref NewUserTopic
+              - Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource: !GetAtt UserEventsQueue.Arn
+
+  # ===============================================
+  # === FUNCIONES LAMBDA DE NODEJS
+  # ===============================================
+  SaveUserFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: saveUser
+      Handler: infrastructure/in/rest/UserHandler.saveUser
+      Runtime: nodejs20.x
+      Role: !GetAtt CrudLambdaRole.Arn
+      Code:
+        S3Bucket: artefactos-lambda-crud-jj-20250905 
+        S3Key: nodejs-lambda.zip
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref UsersTable
+          SQS_QUEUE_URL: !Ref UserEventsQueue
+
+  GetUsersFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: getUsers
+      Handler: infrastructure/in/rest/UserHandler.getUsers
+      Runtime: nodejs20.x
+      Role: !GetAtt CrudLambdaRole.Arn
+      Code:
+        S3Bucket: artefactos-lambda-crud-jj-20250905 
+        S3Key: nodejs-lambda.zip
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref UsersTable
+
+  SendEmailFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: sendEmail
+      Handler: infrastructure/in/rest/SnsHandler.getUserBySqsEvent
+      Runtime: nodejs20.x
+      Role: !GetAtt NotificationLambdaRole.Arn
+      Code:
+        S3Bucket: artefactos-lambda-crud-jj-20250905 
+        S3Key: nodejs-lambda.zip
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref NewUserTopic
+
+  # ===============================================
+  # === FUNCIONES LAMBDA DE JAVA (AÑADIDAS)
+  # ===============================================
+  DeleteUserFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: deleteUser
+      Handler: com.users.infrastructure.in.rest.UserRest$DeleteUserHandler::handleRequest
+      Runtime: java17
+      Role: !GetAtt CrudLambdaRole.Arn
+      Code:
+        S3Bucket: artefactos-lambda-crud-jj-20250905
+        S3Key: users-java-handlers-1.0-SNAPSHOT.jar 
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref UsersTable
+      Timeout: 20
+      MemorySize: 512
+
+  PutUserFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: putUser
+      Handler: com.users.infrastructure.in.rest.UserRest$UpdateUserHandler::handleRequest
+      Runtime: java17
+      Role: !GetAtt CrudLambdaRole.Arn
+      Code:
+        S3Bucket: artefactos-lambda-crud-jj-20250905 
+        S3Key: users-java-handlers-1.0-SNAPSHOT.jar
+      Environment:
+        Variables:
+          TABLE_NAME: !Ref UsersTable
+      Timeout: 20
+      MemorySize: 512
+
+  # ===============================================
+  # === API GATEWAY Y RUTAS
+  # ===============================================
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: UserApi
+      ProtocolType: HTTP
+
+  HttpApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: dev
+      AutoDeploy: true
+
+  # --- Rutas y Permisos para NodeJS ---
+  SaveUserIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt SaveUserFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  SaveUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: 'POST /users'
+      Target: !Join ['/', ['integrations', !Ref SaveUserIntegration]]
+
+  SaveUserPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt SaveUserFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*"
+
+  GetUsersIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt GetUsersFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  GetUsersRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: 'GET /users'
+      Target: !Join ['/', ['integrations', !Ref GetUsersIntegration]]
+
+  GetUsersPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt GetUsersFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*"
+
+  # --- Rutas y Permisos para Java (AÑADIDOS) ---
+  DeleteUserIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt DeleteUserFunction.Arn
+      PayloadFormatVersion: '2.0'
+  
+  DeleteUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: 'DELETE /users/{id}'
+      Target: !Join ['/', ['integrations', !Ref DeleteUserIntegration]]
+
+  DeleteUserPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt DeleteUserFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*"
+
+  PutUserIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt PutUserFunction.Arn
+      PayloadFormatVersion: '2.0'
+  
+  PutUserRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: 'PUT /users/{id}'
+      Target: !Join ['/', ['integrations', !Ref PutUserIntegration]]
+
+  PutUserPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt PutUserFunction.Arn
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:${AWS::Partition}:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*"
+
+  # --- Disparador (Trigger) que conecta SQS con la Lambda sendEmail ---
+  SendEmailEventSourceMapping:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt UserEventsQueue.Arn
+      FunctionName: !GetAtt SendEmailFunction.Arn
+      Enabled: true
+      BatchSize: 10
